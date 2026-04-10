@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -16,6 +16,8 @@ import {
 import Column from './Column';
 import { Card, ColumnData, initialColumns } from './types';
 
+const STORAGE_KEY = 'copilot-kanban-columns';
+
 function findColumnByCard(columns: ColumnData[], cardId: string) {
   return columns.find((column) => column.cards.some((card) => card.id === cardId));
 }
@@ -29,13 +31,39 @@ function removeCard(columns: ColumnData[], cardId: string) {
 
 export default function Board() {
   const [columns, setColumns] = useState<ColumnData[]>(initialColumns);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  const cardIds = useMemo(() => columns.flatMap((column) => column.cards.map((card) => card.id)), [columns]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const storedValue = window.localStorage.getItem(STORAGE_KEY);
+      if (storedValue) {
+        const parsed = JSON.parse(storedValue) as ColumnData[];
+        if (Array.isArray(parsed) && parsed.length) {
+          setColumns(parsed);
+        }
+      }
+    } catch {
+      // If storage is malformed, keep default values.
+    } finally {
+      setHasHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(columns));
+  }, [columns, hasHydrated]);
+
+  if (!hasHydrated) {
+    return <div className="board-shell" />;
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
+
     const activeId = active.id as string;
     const overId = over.id as string;
     if (activeId === overId) return;
@@ -81,12 +109,14 @@ export default function Board() {
   };
 
   const handleAddCard = (columnId: string, title: string, details: string) => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+
     const newCard: Card = {
       id: `task-${Date.now()}`,
-      title: title.trim(),
+      title: trimmedTitle,
       details: details.trim(),
     };
-    if (!newCard.title) return;
 
     setColumns((current) =>
       current.map((column) =>
@@ -97,6 +127,20 @@ export default function Board() {
 
   const handleDeleteCard = (cardId: string) => {
     setColumns((current) => removeCard(current, cardId));
+  };
+
+  const handleEditCard = (cardId: string, title: string, details: string) => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+
+    setColumns((current) =>
+      current.map((column) => ({
+        ...column,
+        cards: column.cards.map((card) =>
+          card.id === cardId ? { ...card, title: trimmedTitle, details: details.trim() } : card,
+        ),
+      })),
+    );
   };
 
   const handleRenameColumn = (columnId: string, title: string) => {
@@ -114,6 +158,7 @@ export default function Board() {
               column={column}
               onAddCard={handleAddCard}
               onDeleteCard={handleDeleteCard}
+              onEditCard={handleEditCard}
               onRenameColumn={handleRenameColumn}
             />
           </SortableContext>

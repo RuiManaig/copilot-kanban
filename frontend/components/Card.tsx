@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { CSS } from '@dnd-kit/utilities';
 import { useSortable } from '@dnd-kit/sortable';
 import { Card } from './types';
@@ -7,23 +8,93 @@ import { Card } from './types';
 type CardProps = {
   card: Card;
   onDelete: () => void;
+  onEdit: (title: string, details: string) => void;
 };
 
-export default function CardItem({ card, onDelete }: CardProps) {
+export default function CardItem({ card, onDelete, onEdit }: CardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState(card.title);
+  const [details, setDetails] = useState(card.details);
+
+  useEffect(() => {
+    setTitle(card.title);
+    setDetails(card.details);
+  }, [card.title, card.details]);
+
+  const submitEdit = () => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+    onEdit(trimmedTitle, details.trim());
+    setIsEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setTitle(card.title);
+    setDetails(card.details);
+    setIsEditing(false);
+  };
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`task-card ${isDragging ? 'dragging' : ''}`} {...attributes} {...listeners}>
-      <h3 className="task-card-title">{card.title}</h3>
-      <p className="task-card-details">{card.details}</p>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`task-card ${isDragging ? 'dragging' : ''}`}
+      {...attributes}
+      {...(!isEditing ? listeners : {})}
+    >
+      {isEditing ? (
+        <>
+          <input
+            className="task-card-input"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            aria-label="Edit card title"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                submitEdit();
+              }
+            }}
+          />
+          <textarea
+            className="task-card-textarea"
+            value={details}
+            onChange={(event) => setDetails(event.target.value)}
+            aria-label="Edit card details"
+          />
+        </>
+      ) : (
+        <>
+          <h3 className="task-card-title">{card.title}</h3>
+          <p className="task-card-details">{card.details}</p>
+        </>
+      )}
       <div className="task-actions">
-        <button type="button" className="delete-button" onClick={onDelete}>
-          Delete
-        </button>
+        {isEditing ? (
+          <>
+            <button type="button" className="edit-button" onClick={submitEdit}>
+              Save
+            </button>
+            <button type="button" className="cancel-button" onClick={cancelEdit}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="edit-button" onClick={() => setIsEditing(true)}>
+              Edit
+            </button>
+            <button type="button" className="delete-button" onClick={onDelete}>
+              Delete
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

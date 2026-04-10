@@ -9,10 +9,11 @@ type ColumnProps = {
   column: ColumnData;
   onAddCard: (columnId: string, title: string, details: string) => void;
   onDeleteCard: (cardId: string) => void;
+  onEditCard: (cardId: string, title: string, details: string) => void;
   onRenameColumn: (columnId: string, title: string) => void;
 };
 
-export default function Column({ column, onAddCard, onDeleteCard, onRenameColumn }: ColumnProps) {
+export default function Column({ column, onAddCard, onDeleteCard, onEditCard, onRenameColumn }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(column.title);
@@ -23,6 +24,11 @@ export default function Column({ column, onAddCard, onDeleteCard, onRenameColumn
     setTitle(column.title);
   }, [column.title]);
 
+  const startEditingTitle = () => {
+    setTitle(column.title);
+    setIsEditing(true);
+  };
+
   const submitTitle = () => {
     const trimmed = title.trim();
     if (trimmed && trimmed !== column.title) {
@@ -31,7 +37,13 @@ export default function Column({ column, onAddCard, onDeleteCard, onRenameColumn
     setIsEditing(false);
   };
 
+  const cancelTitleEdit = () => {
+    setTitle(column.title);
+    setIsEditing(false);
+  };
+
   const submitCard = () => {
+    if (!newTitle.trim()) return;
     onAddCard(column.id, newTitle, newDetails);
     setNewTitle('');
     setNewDetails('');
@@ -45,7 +57,6 @@ export default function Column({ column, onAddCard, onDeleteCard, onRenameColumn
             className="column-title-input"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            onBlur={submitTitle}
             onKeyDown={(event) => event.key === 'Enter' && submitTitle()}
             aria-label={`Edit title for ${column.title}`}
             autoFocus
@@ -53,15 +64,27 @@ export default function Column({ column, onAddCard, onDeleteCard, onRenameColumn
         ) : (
           <h2 className="column-title">{column.title}</h2>
         )}
-        <button type="button" className="edit-button" onClick={() => setIsEditing((current) => !current)}>
-          {isEditing ? 'Save' : 'Rename'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button type="button" className="edit-button" onClick={isEditing ? submitTitle : startEditingTitle}>
+            {isEditing ? 'Save' : 'Rename'}
+          </button>
+          {isEditing ? (
+            <button type="button" className="cancel-button" onClick={cancelTitleEdit}>
+              Cancel
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="column-meta">
         <div className="card-list">
           {column.cards.map((card: Card) => (
-            <CardItem key={card.id} card={card} onDelete={() => onDeleteCard(card.id)} />
+            <CardItem
+              key={card.id}
+              card={card}
+              onDelete={() => onDeleteCard(card.id)}
+              onEdit={(updatedTitle, updatedDetails) => onEditCard(card.id, updatedTitle, updatedDetails)}
+            />
           ))}
         </div>
 
@@ -71,6 +94,12 @@ export default function Column({ column, onAddCard, onDeleteCard, onRenameColumn
             className="field-input"
             value={newTitle}
             onChange={(event) => setNewTitle(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                submitCard();
+              }
+            }}
           />
           <textarea
             placeholder="Details"
