@@ -78,20 +78,20 @@ export default function CardItem({ card, onDelete, onEdit }: CardProps) {
       <div className="task-actions">
         {isEditing ? (
           <>
-            <button type="button" className="edit-button" onClick={submitEdit}>
-              Save
+            <button type="button" className="hero-edit-button" onClick={submitEdit} aria-label="Save card edits">
+              ✔
             </button>
-            <button type="button" className="cancel-button" onClick={cancelEdit}>
-              Cancel
+            <button type="button" className="cancel-button" onClick={cancelEdit} aria-label="Cancel card edits">
+              ✕
             </button>
           </>
         ) : (
           <>
-            <button type="button" className="edit-button" onClick={() => setIsEditing(true)}>
-              Edit
+            <button type="button" className="hero-edit-button" onClick={() => setIsEditing(true)} aria-label="Edit card">
+              ✎
             </button>
-            <button type="button" className="delete-button" onClick={onDelete}>
-              Delete
+            <button type="button" className="delete-button" onClick={onDelete} aria-label="Delete card">
+              🗑
             </button>
           </>
         )}

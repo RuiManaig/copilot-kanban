@@ -65,12 +65,17 @@ export default function Column({ column, onAddCard, onDeleteCard, onEditCard, on
           <h2 className="column-title">{column.title}</h2>
         )}
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button type="button" className="edit-button" onClick={isEditing ? submitTitle : startEditingTitle}>
-            {isEditing ? 'Save' : 'Rename'}
+          <button
+            type="button"
+            className="hero-edit-button"
+            aria-label={isEditing ? 'Save column title' : 'Rename column'}
+            onClick={isEditing ? submitTitle : startEditingTitle}
+          >
+            ✎
           </button>
           {isEditing ? (
-            <button type="button" className="cancel-button" onClick={cancelTitleEdit}>
-              Cancel
+            <button type="button" className="cancel-button" aria-label="Cancel title edit" onClick={cancelTitleEdit}>
+              ✕
             </button>
           ) : null}
         </div>
